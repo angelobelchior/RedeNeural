@@ -1,11 +1,13 @@
+using System.Globalization;
 using RedeNeural.FeedForward.Calculos;
 
 namespace RedeNeural.FeedForward;
 
 internal class RedeNeural
 {
-    private readonly Camada _camadaOculta;
+    private readonly Camada _camadaDeEntrada;
     private readonly Camada _camadaSaida;
+    private readonly int _tamanhoDosDadosDeSaida;
     private readonly IFuncoes _funcoes;
 
     public RedeNeural(
@@ -14,13 +16,14 @@ internal class RedeNeural
         int tamanhoDosDadosDeSaida)
     {
         _funcoes = funcoes;
+        _tamanhoDosDadosDeSaida = tamanhoDosDadosDeSaida;
 
-        //Uma regra prática sugere que o número de neurônios em uma camada oculta
+        //Uma regra prática sugere que o número de neurônios em uma camada
         //deve estar entre o número de neurônios na camada de entrada e o número de neurônios na camada de saída.
         var quantidadeDeNeuronios = (tamanhoDosDadosDeEntrada + tamanhoDosDadosDeSaida) / 2;
 
-        _camadaOculta = new Camada(quantidadeDeNeuronios, tamanhoDosDadosDeEntrada, funcoes);
-        _camadaSaida = new Camada(quantidadeDeNeuronios, tamanhoDosDadosDeSaida, funcoes);
+        _camadaDeEntrada = new Camada(quantidadeDeNeuronios, tamanhoDosDadosDeEntrada);
+        _camadaSaida = new Camada(quantidadeDeNeuronios, tamanhoDosDadosDeSaida);
     }
 
     public void Treinar(Dataset dataset, int quantidadeDeEpocas, double taxaDeAprendizagem)
@@ -31,58 +34,100 @@ internal class RedeNeural
         for (var epoca = 0; epoca < quantidadeDeEpocas; epoca++)
         {
             for (var i = 0; i < dataset.Entrada.Length; i++)
+            {
+                Console.WriteLine(
+                    $"Época: {Format(epoca + 1)} | Entrada[{Format(i)}] = {Join(dataset.Entrada[i])} | Saida[{Format(i)}] = {Join(dataset.SaidaEsperada[i])} ");
                 Treinar(dataset.Entrada[i], dataset.SaidaEsperada[i], taxaDeAprendizagem);
+            }
         }
     }
 
     private void Treinar(double[] entrada, double[] saidaEsperada, double taxaDeAprendizagem)
     {
-        var resultadoCamadaOcultaProcessada = _camadaOculta.Processar(entrada);
-        var resultadoCamadaDeSaidaProcessada = _camadaSaida.Processar(resultadoCamadaOcultaProcessada);
+        var resultadoCamadaDeEntrada = Processar(_camadaDeEntrada, entrada);
+        var resultadoCamadaDeSaida = Processar(_camadaSaida, resultadoCamadaDeEntrada);
+        var deltasCamadaDeSaida = CalcularDeltaErroCamadaSaida(resultadoCamadaDeSaida, saidaEsperada);
+        var deltasCamadaDeEntrada =
+            CalcularDeltaErroCamadaDeEntrada(resultadoCamadaDeEntrada, deltasCamadaDeSaida, _camadaSaida.ObterPesos());
 
-        var deltaSaidas = CalcularDeltaErroCamadaSaida(resultadoCamadaDeSaidaProcessada, saidaEsperada);
-        var deltasOcultos = CalcularDeltaErroCamadaOculta(resultadoCamadaOcultaProcessada, deltaSaidas, _camadaSaida.ObterPesos());
-
-        _camadaSaida.AtualizarPesosEBias(resultadoCamadaOcultaProcessada, deltaSaidas, taxaDeAprendizagem);
-        _camadaOculta.AtualizarPesosEBias(entrada, deltasOcultos, taxaDeAprendizagem);
+        AtualizarPesosEBias(_camadaSaida, resultadoCamadaDeEntrada, deltasCamadaDeSaida, taxaDeAprendizagem);
+        AtualizarPesosEBias(_camadaDeEntrada, entrada, deltasCamadaDeEntrada, taxaDeAprendizagem);
     }
 
-    public void Testar(Dataset dataset, out double taxaDeErro)
+    public MatrizDeConfusao Testar(Dataset dataset)
     {
         Console.WriteLine();
         Console.WriteLine("Testando a rede neural:");
-        var somaDosErros = 0.0;
+        
+        var matrizDeConfusao = new MatrizDeConfusao(_tamanhoDosDadosDeSaida);
 
         for (var i = 0; i < dataset.Entrada.Length; i++)
         {
-            var saidasOcultas = _camadaOculta.Processar(dataset.Entrada[i]);
-            var saida = _camadaSaida.Processar(saidasOcultas);
-            var erro = CalcularErro(saida, dataset.SaidaEsperada[i]);
+            var resultadoCamadaDeEntrada = Processar(_camadaDeEntrada, dataset.Entrada[i]);
+            var resultadoCamadaDeSaida = Processar(_camadaSaida, resultadoCamadaDeEntrada);
 
-            somaDosErros += erro;
+            var indiceEsperado = Array.IndexOf(dataset.SaidaEsperada[i], dataset.SaidaEsperada[i].Max());
+            var indicePredito = Array.IndexOf(resultadoCamadaDeSaida, resultadoCamadaDeSaida.Max());
 
-            Console.Write($"Entrada: [ {string.Join("; ", dataset.Entrada[i]),-10} ] ");
-            Console.Write($"| Esperado: [ {string.Join("; ", dataset.SaidaEsperada[i]),-10} ] ");
-            Console.Write($"| Saída: [ {string.Join("; ", saida),-10} ] ");
-            Console.Write($"| Erro: {erro,-8}");
+            matrizDeConfusao.AdicionarResultado(indiceEsperado, indicePredito);
+
+
+            Console.Write($"Entrada: [{Join(dataset.Entrada[i])}] ");
+            Console.Write($"| Esperado: [{Join(dataset.SaidaEsperada[i])}] ");
+            Console.Write($"| Saída: [{Join(resultadoCamadaDeSaida, 22)}] ");
             Console.WriteLine();
         }
 
-        taxaDeErro = somaDosErros / dataset.Entrada.Length;
+        return matrizDeConfusao;
     }
 
     public double[] Predizer(double[] entradas)
     {
         Console.WriteLine();
         Console.WriteLine("Predizer:");
-        var saidasOcultas = _camadaOculta.Processar(entradas);
-        var saida = _camadaSaida.Processar(saidasOcultas);
+        var resultadoCamadaDeEntrada = Processar(_camadaDeEntrada, entradas);
+        var resultadoCamadaDeSaida = Processar(_camadaSaida, resultadoCamadaDeEntrada);
 
-        Console.Write($"Entrada: [ {string.Join(", ", entradas)} ] ");
-        Console.Write($"| Saída: [ {string.Join(", ", saida)} ] ");
+        Console.Write($"Entrada: [{Join(entradas)}] ");
+        Console.Write($"| Saída: [{Join(resultadoCamadaDeSaida, 22)} ] ");
         Console.WriteLine();
 
+        return resultadoCamadaDeSaida;
+    }
+
+    private double[] Processar(Camada camada, double[] entrada)
+    {
+        var saida = new double[camada.Neuronios.Length];
+        for (var i = 0; i < camada.Neuronios.Length; i++)
+        {
+            var somaPonderada = CalcularSomaPonderada(camada.Neuronios[i], entrada);
+            saida[i] = _funcoes.Ativar(somaPonderada + camada.Neuronios[i].Bias);
+        }
+
         return saida;
+    }
+
+    private double CalcularSomaPonderada(Neuronio neuronio, double[] entrada)
+    {
+        var soma = 0.0;
+        for (var i = 0; i < entrada.Length; i++)
+            soma += entrada[i] * neuronio.Pesos[i];
+
+        return soma;
+    }
+
+    private void AtualizarPesosEBias(Camada camada, double[] entrada, double[] delta, double taxaDeAprendizagem)
+    {
+        for (var i = 0; i < camada.Neuronios.Length; i++)
+            AtualizarPesosEBias(camada.Neuronios[i], entrada, delta[i], taxaDeAprendizagem);
+    }
+
+    private void AtualizarPesosEBias(Neuronio neuronio, double[] entrada, double delta, double taxaDeAprendizagem)
+    {
+        for (var i = 0; i < neuronio.Pesos.Length; i++)
+            neuronio.Pesos[i] -= taxaDeAprendizagem * delta * entrada[i];
+
+        neuronio.Bias -= taxaDeAprendizagem * delta;
     }
 
     private double[] CalcularDeltaErroCamadaSaida(double[] saida, double[] saidaEsperada)
@@ -96,8 +141,9 @@ internal class RedeNeural
 
         return deltas;
     }
-    
-    private double[] CalcularDeltaErroCamadaOculta(double[] saida, double[] deltaDaProximaCamada, double[][] pesosDaProximaCamada)
+
+    private double[] CalcularDeltaErroCamadaDeEntrada(double[] saida, double[] deltaDaProximaCamada,
+        double[][] pesosDaProximaCamada)
     {
         var delta = new double[saida.Length];
         for (var i = 0; i < saida.Length; i++)
@@ -111,11 +157,11 @@ internal class RedeNeural
         return delta;
     }
 
-    private static double CalcularErro(double[] saida, double[] saidaEsperada)
-    {
-        var erro = 0.0;
-        for (var i = 0; i < saida.Length; i++) 
-            erro += Math.Pow(saida[i] - saidaEsperada[i], 2);
-        return erro / saida.Length;
-    }
+    private static string Join(double[] array, int padLeft = 3)
+        => string.Join(",", array.Select(a => Format(a, padLeft)));
+
+    private static string Format(double value, int padLeft = 3)
+        => value.ToString(CultureInfo.InvariantCulture)
+            .Replace(",", ".")
+            .PadLeft(padLeft);
 }

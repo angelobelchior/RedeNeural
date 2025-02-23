@@ -317,15 +317,18 @@ double[][] dadosDeSaidasEsperadasDeTestes =
     [0.0, 0.0, 1.0]
 ];
 
+var tamanhoDosDadosDeSaida = 3;
 var nn = new RedeNeural.FeedForward.RedeNeural(
     funcoes: Funcoes.Sigmoid,
     tamanhoDosDadosDeEntrada: 4,
-    tamanhoDosDadosDeSaida: 3);
+    tamanhoDosDadosDeSaida: tamanhoDosDadosDeSaida);
 
 var datasetDeTreino = new Dataset(dadosDeTreino, dadosDeSaidasEsperadas);
-nn.Treinar(datasetDeTreino, 100000, 0.1);
+nn.Treinar(datasetDeTreino, 1000, 0.1);
 
 var datasetDeTeste = new Dataset(testData, dadosDeSaidasEsperadasDeTestes);
-nn.Testar(datasetDeTeste, out var taxaDeErro);
+var matrizDeConfusao = nn.Testar(datasetDeTeste);
+matrizDeConfusao.ExibirMatriz();
 
-var resultado = nn.Predizer([5.1, 3.5, 1.4, 0.2]);
+
+_ = nn.Predizer([5.1, 3.5, 1.4, 0.2]);
