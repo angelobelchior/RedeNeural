@@ -58,8 +58,8 @@ internal class RedeNeural
     {
         Console.WriteLine();
         Console.WriteLine("Testando a rede neural:");
-        
-        var matrizDeConfusao = new MatrizDeConfusao(_tamanhoDosDadosDeSaida);
+
+        var matrizDeConfusao = new MatrizDeConfusao(_tamanhoDosDadosDeSaida, dataset.Classes);
 
         for (var i = 0; i < dataset.Entrada.Length; i++)
         {
@@ -142,15 +142,15 @@ internal class RedeNeural
         return deltas;
     }
 
-    private double[] CalcularDeltaErroCamadaDeEntrada(double[] saida, double[] deltaDaProximaCamada,
-        double[][] pesosDaProximaCamada)
+    private double[] CalcularDeltaErroCamadaDeEntrada(double[] saida, double[] deltas,
+        double[][] pesos)
     {
         var delta = new double[saida.Length];
         for (var i = 0; i < saida.Length; i++)
         {
             var erro = 0.0;
-            for (var j = 0; j < deltaDaProximaCamada.Length; j++)
-                erro += deltaDaProximaCamada[j] * pesosDaProximaCamada[i][j];
+            for (var j = 0; j < deltas.Length; j++)
+                erro += deltas[j] * pesos[i][j];
             delta[i] = erro * _funcoes.Derivada(saida[i]);
         }
 
