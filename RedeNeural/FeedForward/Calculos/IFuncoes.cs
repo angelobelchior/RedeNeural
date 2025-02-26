@@ -8,33 +8,29 @@ public interface IFuncoes
 
 public class Sigmoid : IFuncoes
 {
-    public double Ativar(double valor) => 1.0 / (1.0 + Math.Exp(-valor));
+    public double Ativar(double valor)
+        => 1.0 / (1.0 + Math.Exp(-valor));
 
-    public double Derivada(double valorDaSigmoide) 
+    public double Derivada(double valorDaSigmoide)
         => valorDaSigmoide * (1 - valorDaSigmoide);
 }
 
 public class TangenteHiperbolica : IFuncoes
 {
     public double Ativar(double valor)
-    {
-        var x = Math.Exp(valor);
-        var negativo = Math.Exp(-valor);
-        return (x - negativo) / (x + negativo);
-    }
+        => Math.Tanh(valor);
 
-    public double Derivada(double valor)
-    {
-        var x = Math.Exp(valor);
-        var negativo = Math.Exp(-valor);
-        var denominador = x + negativo;
-        return 4 * x * negativo / (denominador * denominador);
-    }
+    public double Derivada(double valorDaTangenteHiperbolica)
+        => 1 - Math.Pow(valorDaTangenteHiperbolica, 2);
 }
 
 public class ReLU : IFuncoes
 {
-    public double Ativar(double valor) => Math.Max(0, valor);
+    public double Ativar(double valor)
+        => Math.Max(0, valor);
+    
+    //SoftMax
 
-    public double Derivada(double valor) => valor > 0 ? 1 : 0;
+    public double Derivada(double valorDaReLu)
+        => valorDaReLu > 0 ? 1 : 0;
 }

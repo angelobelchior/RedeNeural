@@ -5,7 +5,7 @@ namespace RedeNeural.FeedForward;
 internal class Neuronio
 {
     public double[] Pesos { get; set; }
-    public double Bias { get; set; }
+    public double Vies { get; set; }
 
     public Neuronio(int quantidadeDeEntradas)
     {
@@ -13,6 +13,6 @@ internal class Neuronio
         for (var i = 0; i < quantidadeDeEntradas; i++)
             Pesos[i] = Funcoes.ObterValorAleatorio();
 
-        Bias = Funcoes.ObterValorAleatorio();
+        Vies = Funcoes.ObterValorAleatorio();
     }
 }

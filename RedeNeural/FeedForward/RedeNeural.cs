@@ -1,4 +1,4 @@
-using System.Globalization;
+using static RedeNeural.FeedForward.Calculos.Funcoes;
 using RedeNeural.FeedForward.Calculos;
 
 namespace RedeNeural.FeedForward;
@@ -28,8 +28,13 @@ internal class RedeNeural
 
     public void Treinar(Dataset dataset, int quantidadeDeEpocas, double taxaDeAprendizagem)
     {
+        using var _ = new MedidorDeTempo(nameof(Treinar));
+
         Console.WriteLine();
         Console.WriteLine("Treinando a rede neural...");
+        Console.WriteLine("Quantidade de épocas: " + quantidadeDeEpocas);
+        Console.WriteLine("Taxa de aprendizagem: " + taxaDeAprendizagem);
+        Console.WriteLine("Função de ativação: " + _funcoes.GetType().Name);
 
         for (var epoca = 0; epoca < quantidadeDeEpocas; epoca++)
         {
@@ -44,27 +49,37 @@ internal class RedeNeural
 
     private void Treinar(double[] entrada, double[] saidaEsperada, double taxaDeAprendizagem)
     {
-        var resultadoCamadaDeEntrada = Processar(_camadaDeEntrada, entrada);
-        var resultadoCamadaDeSaida = Processar(_camadaSaida, resultadoCamadaDeEntrada);
+        var resultadoCamadaDeEntrada = Calcular(_camadaDeEntrada, entrada);
+        var resultadoCamadaDeSaida = Calcular(_camadaSaida, resultadoCamadaDeEntrada);
+
         var deltasCamadaDeSaida = CalcularDeltaErroCamadaSaida(resultadoCamadaDeSaida, saidaEsperada);
         var deltasCamadaDeEntrada =
             CalcularDeltaErroCamadaDeEntrada(resultadoCamadaDeEntrada, deltasCamadaDeSaida, _camadaSaida.ObterPesos());
 
-        AtualizarPesosEBias(_camadaSaida, resultadoCamadaDeEntrada, deltasCamadaDeSaida, taxaDeAprendizagem);
-        AtualizarPesosEBias(_camadaDeEntrada, entrada, deltasCamadaDeEntrada, taxaDeAprendizagem);
+        AtualizarPesosEVies(_camadaSaida, resultadoCamadaDeEntrada, deltasCamadaDeSaida, taxaDeAprendizagem);
+        AtualizarPesosEVies(_camadaDeEntrada, entrada, deltasCamadaDeEntrada, taxaDeAprendizagem);
+
+        //TODO: Incluir nível de erro para parar a execução das épocas
     }
 
     public MatrizDeConfusao Testar(Dataset dataset)
     {
+        using var _ = new MedidorDeTempo(nameof(Testar));
+
         Console.WriteLine();
-        Console.WriteLine("Testando a rede neural:");
+        Console.WriteLine("Testando a rede neural...");
+        Console.WriteLine("Quantidade de Registros: " + dataset.Entrada.Length);
+        Console.WriteLine("Classes: " + string.Join(", ", dataset.Classes));
+        Console.WriteLine("Função de ativação: " + _funcoes.GetType().Name);
 
         var matrizDeConfusao = new MatrizDeConfusao(_tamanhoDosDadosDeSaida, dataset.Classes);
 
         for (var i = 0; i < dataset.Entrada.Length; i++)
         {
-            var resultadoCamadaDeEntrada = Processar(_camadaDeEntrada, dataset.Entrada[i]);
-            var resultadoCamadaDeSaida = Processar(_camadaSaida, resultadoCamadaDeEntrada);
+            var resultadoCamadaDeEntrada = Calcular(_camadaDeEntrada, dataset.Entrada[i]);
+            var resultadoCamadaDeSaida = Calcular(_camadaSaida, resultadoCamadaDeEntrada);
+
+            // Colocar linha de corte: ex: se o valor for menor que 0.5, então é 0, senão é 1
 
             var indiceEsperado = Array.IndexOf(dataset.SaidaEsperada[i], dataset.SaidaEsperada[i].Max());
             var indicePredito = Array.IndexOf(resultadoCamadaDeSaida, resultadoCamadaDeSaida.Max());
@@ -74,34 +89,30 @@ internal class RedeNeural
 
             Console.Write($"Entrada: [{Join(dataset.Entrada[i])}] ");
             Console.Write($"| Esperado: [{Join(dataset.SaidaEsperada[i])}] ");
-            Console.Write($"| Saída: [{Join(resultadoCamadaDeSaida, 22)}] ");
+            Console.Write($"| Saída: [{Join(resultadoCamadaDeSaida, arredondar: 2, padLeft: 5)}] ");
             Console.WriteLine();
         }
 
         return matrizDeConfusao;
     }
 
-    public double[] Predizer(double[] entradas)
+    public double[] Predizer(double[] entrada)
     {
-        Console.WriteLine();
-        Console.WriteLine("Predizer:");
-        var resultadoCamadaDeEntrada = Processar(_camadaDeEntrada, entradas);
-        var resultadoCamadaDeSaida = Processar(_camadaSaida, resultadoCamadaDeEntrada);
+        using var _ = new MedidorDeTempo(nameof(Predizer));
 
-        Console.Write($"Entrada: [{Join(entradas)}] ");
-        Console.Write($"| Saída: [{Join(resultadoCamadaDeSaida, 22)} ] ");
-        Console.WriteLine();
+        var resultadoCamadaDeEntrada = Calcular(_camadaDeEntrada, entrada);
+        var resultadoCamadaDeSaida = Calcular(_camadaSaida, resultadoCamadaDeEntrada);
 
         return resultadoCamadaDeSaida;
     }
 
-    private double[] Processar(Camada camada, double[] entrada)
+    private double[] Calcular(Camada camada, double[] entrada)
     {
         var saida = new double[camada.Neuronios.Length];
         for (var i = 0; i < camada.Neuronios.Length; i++)
         {
             var somaPonderada = CalcularSomaPonderada(camada.Neuronios[i], entrada);
-            saida[i] = _funcoes.Ativar(somaPonderada + camada.Neuronios[i].Bias);
+            saida[i] = _funcoes.Ativar(somaPonderada + camada.Neuronios[i].Vies);
         }
 
         return saida;
@@ -116,18 +127,18 @@ internal class RedeNeural
         return soma;
     }
 
-    private void AtualizarPesosEBias(Camada camada, double[] entrada, double[] delta, double taxaDeAprendizagem)
+    private void AtualizarPesosEVies(Camada camada, double[] entrada, double[] delta, double taxaDeAprendizagem)
     {
         for (var i = 0; i < camada.Neuronios.Length; i++)
-            AtualizarPesosEBias(camada.Neuronios[i], entrada, delta[i], taxaDeAprendizagem);
+            AtualizarPesosEVies(camada.Neuronios[i], entrada, delta[i], taxaDeAprendizagem);
     }
 
-    private void AtualizarPesosEBias(Neuronio neuronio, double[] entrada, double delta, double taxaDeAprendizagem)
+    private void AtualizarPesosEVies(Neuronio neuronio, double[] entrada, double delta, double taxaDeAprendizagem)
     {
         for (var i = 0; i < neuronio.Pesos.Length; i++)
             neuronio.Pesos[i] -= taxaDeAprendizagem * delta * entrada[i];
 
-        neuronio.Bias -= taxaDeAprendizagem * delta;
+        neuronio.Vies -= taxaDeAprendizagem * delta;
     }
 
     private double[] CalcularDeltaErroCamadaSaida(double[] saida, double[] saidaEsperada)
@@ -156,12 +167,4 @@ internal class RedeNeural
 
         return delta;
     }
-
-    private static string Join(double[] array, int padLeft = 3)
-        => string.Join(",", array.Select(a => Format(a, padLeft)));
-
-    private static string Format(double value, int padLeft = 3)
-        => value.ToString(CultureInfo.InvariantCulture)
-            .Replace(",", ".")
-            .PadLeft(padLeft);
 }

@@ -1,3 +1,5 @@
+using RedeNeural.FeedForward.Calculos;
+
 namespace RedeNeural.FeedForward;
 
 using System;

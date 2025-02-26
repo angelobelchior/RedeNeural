@@ -10,7 +10,7 @@ internal class Camada
         for (var i = 0; i < quantidadeDeNeuronios; i++)
         {
             Neuronios[i] = new Neuronio(quantidadeDeEntradas);
-            Console.WriteLine($"Neurônio[{i}]=> Qtd.Entradas: {quantidadeDeEntradas} | Pesos: {string.Join(';', Neuronios[i].Pesos)} | Bias: {Neuronios[i].Bias}");
+            Console.WriteLine($"Neurônio[{i}]=> Qtd.Entradas: {quantidadeDeEntradas} | Pesos: {string.Join(';', Neuronios[i].Pesos)} | Viés: {Neuronios[i].Vies}");
         }
     }
 
