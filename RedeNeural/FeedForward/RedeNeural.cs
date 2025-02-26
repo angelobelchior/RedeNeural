@@ -13,14 +13,11 @@ internal class RedeNeural
     public RedeNeural(
         IFuncoes funcoes,
         int tamanhoDosDadosDeEntrada,
-        int tamanhoDosDadosDeSaida)
+        int tamanhoDosDadosDeSaida,
+        int quantidadeDeNeuronios = 3)
     {
         _funcoes = funcoes;
         _tamanhoDosDadosDeSaida = tamanhoDosDadosDeSaida;
-
-        //Uma regra prática sugere que o número de neurônios em uma camada
-        //deve estar entre o número de neurônios na camada de entrada e o número de neurônios na camada de saída.
-        var quantidadeDeNeuronios = (tamanhoDosDadosDeEntrada + tamanhoDosDadosDeSaida) / 2;
 
         _camadaDeEntrada = new Camada(quantidadeDeNeuronios, tamanhoDosDadosDeEntrada);
         _camadaSaida = new Camada(quantidadeDeNeuronios, tamanhoDosDadosDeSaida);

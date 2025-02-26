@@ -9,7 +9,8 @@ var tamanhoDosDadosDeSaida = datasetDeTreino.Classes.Length;
 var redeNeural = new RedeNeural.FeedForward.RedeNeural(
     funcoes: Funcoes.Sigmoid,
     tamanhoDosDadosDeEntrada: tamanhoDosDadosDeEntrada,
-    tamanhoDosDadosDeSaida: tamanhoDosDadosDeSaida);
+    tamanhoDosDadosDeSaida: tamanhoDosDadosDeSaida,
+    quantidadeDeNeuronios: 3);
 
 
 redeNeural.Treinar(datasetDeTreino, quantidadeDeEpocas: 1000, 0.1);
