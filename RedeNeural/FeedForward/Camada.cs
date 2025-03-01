@@ -4,13 +4,25 @@ internal class Camada
 {
     public Neuronio[] Neuronios { get; }
 
+    // public Camada(int quantidadeDeNeuronios, int quantidadeDeEntradas)
+    // {
+    //     Neuronios = new Neuronio[quantidadeDeNeuronios];
+    //     for (var i = 0; i < quantidadeDeNeuronios; i++)
+    //     {
+    //         Neuronios[i] = new Neuronio(quantidadeDeEntradas);
+    //         Console.WriteLine($"Neurônio[{i}]=> Qtd.Entradas: {quantidadeDeEntradas} | Pesos: {string.Join(';', Neuronios[i].Pesos)} | Viés: {Neuronios[i].Vies}");
+    //     }
+    // }
+    
     public Camada(int quantidadeDeNeuronios, int quantidadeDeEntradas)
     {
         Neuronios = new Neuronio[quantidadeDeNeuronios];
         for (var i = 0; i < quantidadeDeNeuronios; i++)
         {
             Neuronios[i] = new Neuronio(quantidadeDeEntradas);
-            Console.WriteLine($"Neurônio[{i}]=> Qtd.Entradas: {quantidadeDeEntradas} | Pesos: {string.Join(';', Neuronios[i].Pesos)} | Viés: {Neuronios[i].Vies}");
+
+            // Adicionando logs para depuração
+            Console.WriteLine($"Neurônio[{i}] => Qtd.Entradas: {quantidadeDeEntradas} | Pesos.Length: {Neuronios[i].Pesos.Length}");
         }
     }
 

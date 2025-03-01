@@ -13,7 +13,6 @@ public class MedidorDeTempo : IDisposable
         _stopwatch = new Stopwatch();
         _stopwatch.Start();
 
-        Console.WriteLine();
         Console.WriteLine($"**********Iniciando Método: {_nomeDoMetodo}**********");
     }
     
@@ -21,6 +20,5 @@ public class MedidorDeTempo : IDisposable
     {
         _stopwatch.Stop();
         Console.WriteLine($"**********Tempo decorrido Método: {_nomeDoMetodo}: " + _stopwatch.ElapsedMilliseconds + "ms **********");
-        Console.WriteLine();
     }
 }

@@ -14,13 +14,13 @@ internal class RedeNeural
         IFuncoes funcoes,
         int tamanhoDosDadosDeEntrada,
         int tamanhoDosDadosDeSaida,
-        int quantidadeDeNeuronios = 3)
+        int quantidadeDeNeuronios)
     {
         _funcoes = funcoes;
         _tamanhoDosDadosDeSaida = tamanhoDosDadosDeSaida;
 
         _camadaDeEntrada = new Camada(quantidadeDeNeuronios, tamanhoDosDadosDeEntrada);
-        _camadaSaida = new Camada(quantidadeDeNeuronios, tamanhoDosDadosDeSaida);
+        _camadaSaida = new Camada(tamanhoDosDadosDeSaida, quantidadeDeNeuronios);
     }
 
     public void Treinar(Dataset dataset, int quantidadeDeEpocas, double taxaDeAprendizagem)
@@ -150,15 +150,18 @@ internal class RedeNeural
         return deltas;
     }
 
-    private double[] CalcularDeltaErroCamadaDeEntrada(double[] saida, double[] deltas,
-        double[][] pesos)
+    private double[] CalcularDeltaErroCamadaDeEntrada(double[] saida, double[] deltas, double[][] pesos)
     {
         var delta = new double[saida.Length];
         for (var i = 0; i < saida.Length; i++)
         {
             var erro = 0.0;
             for (var j = 0; j < deltas.Length; j++)
-                erro += deltas[j] * pesos[i][j];
+            {
+                if (i < pesos.Length && j < pesos[i].Length)
+                    erro += deltas[j] * pesos[j][i];
+            }
+
             delta[i] = erro * _funcoes.Derivada(saida[i]);
         }
 
